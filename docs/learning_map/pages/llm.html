@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>① LLM 大腦｜AI Agent 學習地圖</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+  <a class="back" href="../index.html">← 回心智圖</a>
+  <span class="tag">① 第一站</span>
+  <h1>🧠 LLM 到底是什麼</h1>
+  <p class="subtitle">在你動手設計任何 harness 邏輯之前，先把這件事刻進直覺：LLM 不是一個有意圖的實體，它是一個函式。這個認知落差沒處理好，之後寫的每一層架構都會帶著錯誤的假設。</p>
+
+  <div class="card">
+    <p>LLM（Large Language Model，例如 qwen3_8b）能力邊界很清楚，先把它當成一個黑盒子來看：</p>
+    <ul>
+      <li>它只做一件事：<strong>輸入一段 token 序列 → 輸出下一個 token 的機率分佈</strong></li>
+      <li>它<strong>沒有任何執行能力</strong>：不能讀檔案、不能發請求、不能跑程式碼——這些全部要靠外層程式代勞</li>
+      <li>它<strong>無狀態（stateless）</strong>：每次呼叫都是獨立的一次運算，上一句說過什麼，它自己完全不知道</li>
+      <li>它<strong>沒有「現在」的概念</strong>：不知道現在幾點、不知道自己上次被呼叫是什麼時候、不知道眼前這個請求跟上一個是不是同一個使用者</li>
+    </ul>
+  </div>
+
+  <div class="quote-box">
+    我見過不少人在設計初版架構時，不自覺把 LLM 當成一個「有記憶、會主動做事」的黑盒子去設計系統，結果整套東西繞了一大圈才發現問題出在最根本的假設上。所有看起來「聰明的行為」——讀檔案、呼叫工具、查資料——都不是模型自己做的，是外層程式代為執行、再把結果餵回去讓它繼續往下想。把這點當成設計的第一原則，後面會省很多力氣。
+  </div>
+
+  <h2>它實際在算什麼</h2>
+  <p>核心運算很單純：<strong>給一段文字，算出「下一個 token 最可能是什麼」</strong>，然後重複這個過程——算完一個，接到原文後面，再算下一個，一個 token 一個 token 往下生成，直到觸發停止條件。</p>
+  <div class="card">
+    <pre>輸入：「今天天氣」
+第1次：「今天天氣」+ 最可能的下一字 → 「今天天氣很」
+第2次：「今天天氣很」+ 最可能的下一字 → 「今天天氣很好」
+第3次：「今天天氣很好」+ 最可能的下一字 → 「今天天氣很好。」
+...直到觸發停止訊號</pre>
+  </div>
+  <p>這解釋了一個你可能已經觀察到的現象：回答有時候會「停不下來」或「突然斷掉」——因為它從來不是「想完整句再一次吐出來」，是逐字生成的。本專案的 <code>think</code> 參數（<code>agent_loop(messages, think, verify)</code>）打開時，模型會先產生一段推理過程再給答案，本質上還是同一套逐字生成機制，只是多讓它先寫一段草稿。</p>
+
+  <h2>Token 是什麼，為什麼要懂這個</h2>
+  <p>模型處理的最小單位不是「一個中文字」或「一個英文單字」，是 <strong>token</strong>——文字被切成更小片段後再編號的結果：</p>
+  <table>
+    <tr><th>原始文字</th><th>可能的切法（示意）</th></tr>
+    <tr><td>你好</td><td>["你", "好"] 或 ["你好"]，依模型的分詞策略而定</td></tr>
+    <tr><td>Hello</td><td>["Hello"] 或 ["Hel", "lo"]，英文常被切成字根</td></tr>
+  </table>
+  <p>每個 token 最後都對應一個數字編號，模型內部從頭到尾只跟數字打交道，文字只是給人看的介面。這件事直接牽動 context window 限制、API 計費、中英文處理成本差異——下一站會把這塊攤開講。</p>
+
+  <h2>為什麼它「沒有記憶力」這件事比聽起來更重要</h2>
+  <p>每次呼叫都是一次全新的運算，運算結束，所有中間狀態就丟了——它不會自己留存上一輪對話的任何東西。你會在介面上感覺到它「記得」，純粹是因為外層程式每次都把歷史對話重新整段送進去。這不是什麼邊角細節，這是整套系統設計要繞著走的核心限制。</p>
+  <p>本專案怎麼處理這個限制，在「記憶與 RAG」子地圖有完整拆解——簡單說，就是 harness 自己把最近幾輪對話、加上語意相關的舊對話整理好，每次重新送進去。</p>
+
+  <h2>它要怎麼「做事」</h2>
+  <p>它不會真的去按按鈕、開檔案。它能做的事只有一種：<strong>吐出一段文字</strong>。這段文字可能是：</p>
+  <ul>
+    <li>要直接回給使用者看的內容</li>
+    <li>一段符合特定格式的文字，代表「請求呼叫某個工具」</li>
+  </ul>
+  <p>工具有沒有真的被執行、執行結果是什麼，它完全不知道——這是下一站 Harness 的職責範圍。它只會在下一輪被告知「工具執行結果是這樣」，然後根據這個結果繼續推進。</p>
+
+  <h2>幾個新手容易卡住的地方</h2>
+  <div class="card">
+    <h3>它「看起來」記得我們聊過什麼，這是怎麼回事？</h3>
+    <p>因為每次請求，harness 都把之前的對話整段重傳（下一站細講）。模型本身零儲存能力，記憶的錯覺完全來自外層程式重複餵資料這個動作。</p>
+  </div>
+  <div class="card">
+    <h3>訓練時學到的知識，算不算「記憶」？</h3>
+    <p>那是另一回事，叫<strong>參數裡的知識</strong>——訓練時看過的海量文字，被壓進模型的數字權重裡，這部分固定不變，不會因為你跟它對話而更新。真正會變動的，只有每次對話時當下塞進去的文字，這才是這張地圖裡「記憶」這個詞指的東西，兩者不要混為一談。</p>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <h3>它會不會「亂講」？</h3>
+    <p>它沒有說謊的意圖，它只是在執行「猜下一個 token」這個動作——猜錯了，或者訓練資料裡本來就沒有正確答案，它照樣會很有自信地把猜測講出來，這就是幻覺（hallucination）。這是個常態，不是例外，核心鏈路第五站「自我檢查機制」整節在處理這個問題。</p>
+  </div>
+
+  <div class="deep-dive">
+    <span class="deep-dive-badge">🎓 深入機制（進階，可選讀）</span>
+    <p class="subtitle">上面的說法足夠支撐這張地圖的其他站點往下走。如果你想知道背後真正的技術機制，這一節把神經網路、Transformer 架構、注意力機制、機率取樣、訓練流程攤開講清楚。</p>
+
+    <h2>1. 參數：模型到底是什麼</h2>
+    <p>LLM 本質上是一個神經網路——由大量可調整的數字組成的數學函式。這些數字叫<strong>參數（parameters）</strong>或<strong>權重（weights）</strong>。「qwen3:8b」裡的 8B 就是 <strong>80 億個參數</strong>。訓練的過程，就是不斷調整這 80 億個數字，讓這個函式在「給定前文，猜下一個 token」這個任務上越來越準。</p>
+    <div class="card">
+      <p style="margin-bottom:0;">把模型想成一個函式：<code>f(前文 token 序列) → 下一個 token 的機率分佈</code>。這個函式的具體形狀由 80 億個參數決定，訓練在調整這些參數，推論（你平常聊天時）只是把這個函式算一次，不會改動任何參數。</p>
+    </div>
+
+    <h2>2. Transformer 架構：資料怎麼流過模型</h2>
+    <p>現代 LLM（包括 qwen3）幾乎都基於 2017 年提出的 Transformer 架構，精確地說是其中的 <strong>Decoder-only</strong> 變體。輸入進來後，大致依序流過這幾層：</p>
+    <table>
+      <tr><th>層</th><th>作用</th></tr>
+      <tr><td>① Embedding 層</td><td>把每個 token 編號轉成高維度向量，語意相近的 token 在向量空間裡位置也相近</td></tr>
+      <tr><td>② 位置編碼</td><td>Transformer 本身不知道 token 順序，要額外把位置資訊加進向量</td></tr>
+      <tr><td>③ 多層 Self-Attention + Feed-Forward</td><td>堆疊數十層，每層讓每個 token 向量參考整段文字裡其他 token 的資訊，逐層提煉更抽象的語意表示</td></tr>
+      <tr><td>④ 輸出層</td><td>把最後一層向量轉成「每個可能下一個 token」的機率分佈</td></tr>
+    </table>
+
+    <h2>3. Self-Attention：它怎麼「理解上下文」</h2>
+    <p>這是 Transformer 的核心設計，讓模型處理每個 token 時能回頭參考整段輸入裡的其他 token，自動判斷該多看哪些字。</p>
+    <p>具體做法：每個 token 向量被轉成三個角色——<strong>Query（查詢）</strong>、<strong>Key（鍵）</strong>、<strong>Value（值）</strong>，再用公式算出關注權重：</p>
+    <div class="formula">Attention(Q, K, V) = softmax( Q·K<sup>T</sup> / √d<sub>k</sub> ) · V</div>
+    <ul>
+      <li><code>Q·K<sup>T</sup></code>：算「這個字的查詢」跟「其他每個字的鍵」有多匹配</li>
+      <li><code>/ √d<sub>k</sub></code>：數值縮放，避免數字極端化，訓練更穩定</li>
+      <li><code>softmax(...)</code>：把匹配分數轉成總和為 1 的權重比例</li>
+      <li><code>· V</code>：按這個比例加權平均其他字的值，得到「參考完上下文」的新表示</li>
+    </ul>
+    <div class="card">
+      <p style="margin-bottom:0;">舉例：處理「他把球丟給<strong>她</strong>」裡的「她」，Self-Attention 會學會多關注「球」「丟」、少關注「把」這種虛詞。這套判斷不是人寫規則教的，是訓練時從大量文字裡自己學出來的。</p>
+    </div>
+    <p>模型通常同時跑多組這種計算，稱 <strong>Multi-Head Attention</strong>，每組可能學會關注不同種類的語言關係，最後把結果合併。</p>
+
+    <h2>4. Softmax：從向量到機率分佈</h2>
+    <p>跑完所有 Transformer 層後，最後一個 token 位置的向量經過輸出層，變成一串長度等於詞彙表大小的分數，叫 <strong>logits</strong>。這些分數本身沒意義，要經過 softmax 轉成總和為 1 的機率分佈：</p>
+    <div class="formula">P(token<sub>i</sub>) = e<sup>logit<sub>i</sub></sup> / Σ e<sup>logit<sub>j</sub></sup></div>
+    <p>這才是「猜下一個字」的真正數學意義——模型不是直接決定下一個字，是對詞彙表裡每個可能的 token 都算出機率，再依取樣策略（下一節）選一個。</p>
+
+    <h2>5. 取樣策略：怎麼從機率分佈選出一個字</h2>
+    <ul>
+      <li>🎯 <strong>Greedy</strong>：永遠選機率最高的，結果固定可重現，但容易顯得呆板、容易卡進重複迴圈</li>
+      <li>🌡️ <strong>Temperature</strong>：取樣前把 logits 除以 T。T 越小分佈越尖銳（接近 Greedy）；T 越大分佈越平滑，輸出變化性越高</li>
+      <li>🔝 <strong>Top-k / Top-p</strong>：只在機率最高的 k 個候選（Top-k）或累積機率達 p 的候選集合（Top-p）裡取樣，避免選到低機率、容易語無倫次的詞</li>
+    </ul>
+    <div class="quote-box">
+      這解釋了「進階方向」子地圖②多數決驗證為什麼有效：取樣本身帶隨機性，同一問題多問幾次，模型走的機率路徑不同，統計上「多數」答案通常比單次結果穩健。
+    </div>
+
+    <h2>6. 訓練的三個階段</h2>
+    <table>
+      <tr><th>階段</th><th>做什麼</th><th>目標</th></tr>
+      <tr><td>① 預訓練</td><td>在海量文字上反覆做「猜下一個字」訓練</td><td>學會語言文法、世界知識、推理能力的基礎</td></tr>
+      <tr><td>② 監督微調（SFT）</td><td>用「問題—理想回答」配對資料微調</td><td>學會對話、學會遵循指令，而不只是接龍文章</td></tr>
+      <tr><td>③ 對齊（RLHF / DPO）</td><td>根據人類對多個回答的偏好排序調整行為</td><td>讓回答更符合期待的風格、更安全</td></tr>
+    </table>
+    <p>第一節提過「固定不變的知識」，是階段①壓進參數裡的；②③把模型從「只會接龍」變成「會對話、會用工具」——這也是為什麼同一個基礎模型，不同微調方式會表現出完全不同的能力和風格。</p>
+
+    <h2>7. Context Window 的技術真相</h2>
+    <p>「能看的 token 數有上限」這件事，原因在 Self-Attention 公式的 <code>Q·K<sup>T</sup></code>——每個 token 要跟每個其他 token 都算一次關聯分數，輸入長度 n 個 token，計算量是 <strong>n² 量級</strong>。長度加倍，運算量變四倍，這是硬體限制，不是「記不住」。</p>
+    <div class="card" style="margin-bottom:0;">
+      <p style="margin-bottom:0;">這也解釋了「記憶與 RAG」子地圖裡，harness 為什麼要費心篩選送進去的內容，而不是把全部歷史對話都塞進去——不只是浪費，是計算量會隨長度平方爆炸，長度越長，等待時間也越久。</p>
+    </div>
+  </div>
+
+  <div class="nav-links">
+    <a href="../index.html">← 回心智圖</a>
+    <a href="bridge-llm-harness.html">下一站：② LLM ⇄ Harness 橋接 →</a>
+  </div>
+</div>
+</body>
+</html>

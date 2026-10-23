@@ -1,0 +1,151 @@
+:root {
+  --bg: #f7f7f8;
+  --card-bg: #ffffff;
+  --text: #1f2430;
+  --text-muted: #5b6270;
+  --accent: #2f6fed;
+  --accent-soft: #e8f0fe;
+  --border: #e2e4e9;
+  --code-bg: #0f172a;
+  --code-text: #e2e8f0;
+  --deep: #7c3aed;
+  --deep-soft: #f1e9fe;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --card-bg: #1c1f26;
+    --text: #e7e9ee;
+    --text-muted: #9aa1ad;
+    --accent: #6ea8ff;
+    --accent-soft: #233350;
+    --border: #2b2f38;
+    --code-bg: #0b0e14;
+    --code-text: #dbe4f0;
+    --deep: #b794f6;
+    --deep-soft: #2c2450;
+  }
+}
+
+/* 全域連結色：覆蓋瀏覽器預設深藍，確保深色背景可見 */
+a { color: var(--accent); }
+a:hover { opacity: 0.8; text-decoration: underline; }
+
+* { box-sizing: border-box; }
+
+html { font-size: 19px; }
+
+body {
+  margin: 0;
+  font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.8;
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 40px 28px 100px;
+}
+
+h1 { font-size: 2.2rem; margin-bottom: 0.3rem; }
+h2 { font-size: 1.55rem; margin-top: 2.4rem; border-left: 5px solid var(--accent); padding-left: 12px; }
+h3 { font-size: 1.3rem; margin-top: 1.8rem; color: var(--text); }
+
+p.subtitle { color: var(--text-muted); margin-top: 0; font-size: 1.1rem; }
+
+a.back {
+  display: inline-block;
+  margin-bottom: 20px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: 1.05rem; }
+th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+th { background: var(--accent-soft); }
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 18px 20px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+p code, li code { background: var(--accent-soft); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 26px;
+  margin-bottom: 1.4rem;
+  font-size: 1.05rem;
+}
+
+.tag {
+  display: inline-block;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+.nav-links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3.2rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--border);
+  font-size: 1.05rem;
+}
+.nav-links a { text-decoration: none; }
+
+.quote-box {
+  background: var(--accent-soft);
+  border-left: 5px solid var(--accent);
+  padding: 14px 20px;
+  border-radius: 8px;
+  margin: 1.2rem 0;
+  font-size: 1.1rem;
+}
+
+/* 教科書級深入講解區塊：視覺上明確跟上面的比喻式說明分開 */
+.deep-dive {
+  margin-top: 3.5rem;
+  padding-top: 2rem;
+  border-top: 3px dashed var(--deep);
+}
+.deep-dive-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--deep);
+  color: #fff;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+.deep-dive h2 { border-left-color: var(--deep); }
+.deep-dive .card { border-color: var(--deep); background: var(--deep-soft); }
+.deep-dive .formula {
+  background: var(--deep-soft);
+  border: 1px solid var(--deep);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 1rem 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}

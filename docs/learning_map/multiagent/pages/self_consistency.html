@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>② 多數決驗證｜進階方向</title>
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<div class="container">
+  <a class="back" href="../index.html">← 回進階方向地圖</a>
+  <span class="tag">② 方向一</span>
+  <h1>🗳️ 多數決驗證（Self-Consistency）</h1>
+  <p class="subtitle">現況是問一次檢查員，這個方向升級成問好幾次、取多數決——四個方向裡改動幅度最小的一個，也最容易低估它的成本。</p>
+
+  <h2>概念</h2>
+  <pre>Harness 把同一個問題傳給大腦 5 次（甚至用不同隨機性讓每次想法略有不同）
+大腦回答 5 次，可能是：42, 42, 43, 42, 42
+Harness 統計一下：「42 出現最多次」→ 選 42 當最終答案</pre>
+  <p>這個方法在數學題、邏輯題上特別有用，因為大腦偶爾會想錯一步，多問幾次取多數決能用機率的力量把偶發錯誤稀釋掉——假設正確率 80%，單問一次有 20% 機率答錯，但 5 次裡錯誤答案剛好佔多數的機率低上許多。</p>
+
+  <h2>為什麼多問幾次會得到不同答案</h2>
+  <p>LLM 生成文字時，每一步猜下一個字不是只選機率最高的那個，而是依照 <strong>temperature</strong> 帶一點隨機性去選——溫度越高，越可能選到機率沒那麼高的選項。多數決驗證正是利用這個隨機性，讓模型從不同路徑重新推導，再統計找出最穩定的答案。</p>
+
+  <h2>如果要在本專案實作，大概長這樣</h2>
+  <pre>def ask_with_consistency(messages, think, n=5):
+    answers = []
+    for _ in range(n):
+        resp = requests.post(OLLAMA_URL, json={
+            "model": MODEL, "messages": messages, "stream": False, "think": think,
+        })
+        answers.append(resp.json()["message"]["content"])
+    return most_common(answers)   # 取出現次數最多的答案</pre>
+  <p>跟 <code>_verify_answer()</code> 比，差別只是打電話的次數和怎麼決定最終答案，還是同一個 harness、同一顆大腦，架構上不需要大改。</p>
+
+  <h2>most_common() 要怎麼寫：這裡有個陷阱</h2>
+  <div class="card" style="margin-bottom:0;">
+    <p>答案是「42」這種簡單數字，直接用 <code>collections.Counter(answers).most_common(1)</code> 就能找出多數。但答案是完整句子，即使意思一樣用字也可能不同（「答案是42」vs「結果為42」），直接比對字串相等會找不到真正的多數。更嚴謹的做法是先從每個回答抽取關鍵結果（比如用正規表示式抓數字），再對抽取結果做多數決，不是比對整段文字。</p>
+  </div>
+
+  <h2>代價</h2>
+  <ul>
+    <li>💰 問 5 次 = 5 倍運算時間，qwen3:8b 在本機跑，速度明顯變慢</li>
+    <li>🤷 如果大腦系統性答錯，問 5 次可能 5 次都錯同一個答案，多數決沒有用——這正是上一站講的現況天花板，多數決沒有突破這個天花板，只是把偶發錯誤處理得更好</li>
+  </ul>
+
+  <div class="quote-box">
+    適合情境：答案有明確對錯、容易判斷多數的問題（數學計算、是非題）。不適合開放式問答，這種情況更適合用③ Multi-agent 分工讓另一個角色專門審查。
+  </div>
+
+  <h2>工作中真的會踩到的坑</h2>
+  <div class="card">
+    <h3>⚠️ 把「問 5 次」寫死，沒想過 temperature 要跟著調</h3>
+    <p>如果直接沿用原本單次回答的 temperature（通常偏低，求穩定），多數決驗證會失去意義——每次取樣幾乎都選到同一條路徑，5 次答案長得一模一樣，統計多數根本沒有發揮作用，只是白白多花 5 倍成本得到跟問一次一樣的結果。這個坑特別陰險，因為程式碼完全正常執行、不會報錯，只有拿實際案例比對才會發現「多數決根本沒在工作」。</p>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <h3>⚠️ 開放式問答硬套多數決，花了成本卻沒有效果</h3>
+    <p>開放式問答每次回答的措辭都不一樣，<code>most_common()</code> 這類字串比對邏輯基本上找不到真正的多數——你以為自己做了驗證，實際上只是跑了 5 次一樣貴、一樣慢，但答案的可靠度沒有實質提升。先判斷題型適不適合多數決，比埋頭把它套進每個驗證場景更重要。</p>
+  </div>
+
+  <div class="deep-dive">
+    <span class="deep-dive-badge">🎓 深入機制（進階，可選讀）</span>
+    <p class="subtitle">多數決這個直覺做法，有一個三百年前的經典數學定理當靠山。這一節把 temperature 的數學式攤開，並介紹這個意外的歷史連結。</p>
+
+    <h2>1. Temperature 的正式公式</h2>
+    <div class="formula">P(token_i) = exp(logit_i / T) / Σ exp(logit_j / T)</div>
+    <p><code>T = 1</code> 等同原始 softmax；<code>T &lt; 1</code> 分佈變尖銳，取樣結果趨近 Greedy；<code>T &gt; 1</code> 分佈變平滑，原本機率低的選項也有更高相對機會被選到。多數決驗證常刻意調高 temperature——<code>T</code> 太低，每次取樣幾乎都選到同一答案，多問幾次也得不到真正獨立的路徑，這正是上面「踩雷」第一條的理論根源。</p>
+
+    <h2>2. 意外的歷史連結：Condorcet 陪審團定理</h2>
+    <p>多數決能提高正確率，最早可追溯到 1785 年法國數學家孔多塞提出的<strong>陪審團定理</strong>：如果每個陪審員各自獨立判斷、判斷正確機率都略高於 50%，那麼陪審團人數越多，多數決結果正確的機率就越接近 100%。這個三百年前的定理，數學形式跟「多次取樣 LLM、取多數決」驚人吻合，只要滿足兩個前提：</p>
+    <ul>
+      <li>✅ <strong>每次取樣正確率要高於隨機猜測</strong>（容易滿足）</li>
+      <li>⚠️ <strong>每次取樣要盡量獨立</strong>（在 LLM 情境下比較微妙——同一模型的多次取樣，本質上共享同一套訓練出來的知識和偏誤，不是真正統計學意義上的獨立樣本，這正是系統性錯誤沒辦法被多數決解決的原因：違反了獨立性前提）</li>
+    </ul>
+
+    <h2>3. 跟大數法則的關聯</h2>
+    <p><strong>大數法則</strong>：重複進行同一隨機實驗次數越多，觀察到的結果分佈會越接近真實機率分佈。單次取樣可能因運氣答錯，但取樣次數夠多，觀察到的多數結果會越來越逼近模型真正有把握的答案。這也解釋了為什麼「代價」裡提到報酬會遞減——從 1 次增加到 5 次的改善幅度，通常比從 5 次增加到 20 次大得多，<code>n=5</code> 是常見的實務折衷值，不是隨便選的數字。</p>
+  </div>
+
+  <div class="nav-links">
+    <a href="status_quo.html">← 上一站：① 現況</a>
+    <a href="multi_agent_design.html">看看方向之二：③ Multi-agent 分工 →</a>
+  </div>
+</div>
+</body>
+</html>

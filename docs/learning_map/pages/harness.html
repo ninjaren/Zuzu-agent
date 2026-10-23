@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>③ Harness 身體｜AI Agent 學習地圖</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+  <a class="back" href="../index.html">← 回心智圖</a>
+  <span class="tag">③ 第三站</span>
+  <h1>🦾 Harness 是什麼</h1>
+  <p class="subtitle">這是你實際會花最多時間寫程式碼的地方——模型是別人訓練好的黑盒子，harness 才是你真正能掌控、也真正容易出問題的部分。</p>
+
+  <div class="card">
+    <p><strong>Harness</strong>（原意是「馬具」）= 包裹、驅動 LLM 的那層程式碼。馬具存在的意義，是把馬的力量導向拉車、走對的路——沒有馬具，馬力氣再大也只是到處亂跑。</p>
+  </div>
+
+  <h2>Harness 要負責什麼</h2>
+  <ul>
+    <li>🧰 <strong>管理工具</strong>：準備工具、定義好每個工具的 JSON Schema 讓模型知道怎麼呼叫</li>
+    <li>🔁 <strong>跑迴圈</strong>：模型要工具 → 執行 → 結果回報 → 模型想下一步，直到任務完成（下一站把這個迴圈拆更細）</li>
+    <li>📋 <strong>管理對話狀態</strong>：記住歷史，每次請求重新整包送過去；本專案把歷史存成檔案（<code>sessions/*.json</code>），重開程式不會遺失</li>
+    <li>🚦 <strong>安全把關</strong>：危險操作先問使用者——本專案是在 <code>SYSTEM_PROMPT</code> 裡限制檔案操作範圍</li>
+    <li>🖥️ <strong>呈現結果</strong>：把回應送回前端——本專案透過 Flask</li>
+  </ul>
+
+  <div class="quote-box">
+    <strong>模型 = 只會「想」和「說」；Harness = 把「說」變成「真的去做」的那層。</strong>這句話值得你貼在螢幕旁邊——寫到後面細節一多，很容易忘記這個最基本的分工，開始把本該 harness 處理的狀態管理、錯誤處理硬塞進提示詞裡，指望模型自己搞定，結果只會更不穩定。
+  </div>
+
+  <h2>Harness 不是只有一種寫法</h2>
+  <p>你現在用的 Claude Code、ChatGPT 的 Code Interpreter，還有你自己這個 qwen3_8b 專案，本質上都是某種 harness，差別只在：</p>
+  <table>
+    <tr><th>項目</th><th>差異點</th></tr>
+    <tr><td>工具有哪些</td><td>讀檔案？上網？操作瀏覽器？開放的能力不同</td></tr>
+    <tr><td>安全把關的嚴格程度</td><td>有些動作先問使用者，有些自動放行，規則由設計者決定</td></tr>
+    <tr><td>怎麼管理對話歷史</td><td>存記憶體、存檔案、存資料庫，各自選擇不同</td></tr>
+    <tr><td>用哪個/哪些模型</td><td>有的綁死一個模型，有的可以換（本專案設計成開放介面）</td></tr>
+  </table>
+
+  <h2>本專案的 Harness 在哪裡</h2>
+  <div class="card">
+    <p>就是 <code>app.py</code> + <code>agent_runner.py</code>：</p>
+    <ul style="margin-bottom:0;">
+      <li><code>app.py</code>：Flask 伺服器，接收請求、管理 session 存取</li>
+      <li><code>agent_runner.py</code> 的 <code>build_messages()</code>：組合系統提示詞、記憶、使用者問題</li>
+      <li><code>agent_runner.py</code> 的 <code>agent_loop()</code>：迴圈引擎——打電話給模型、判斷工具呼叫、執行、餵回去</li>
+    </ul>
+  </div>
+
+  <h2>工作中真的會踩到的坑</h2>
+  <div class="card">
+    <h3>⚠️ 迴圈沒有上限，第一次失控通常發生在你沒在場的時候</h3>
+    <p>如果模型持續要求用工具、沒完沒了，<code>agent_loop()</code> 會一直跑下去——本專案目前還沒加這層保護。小規模測試時幾乎不會發現，直到某次模型卡進一個奇怪的推理迴路，或是工具一直回傳讓它誤以為「還沒成功」的結果，才會意識到少了最大輪數限制。寫 harness 時，這是該優先加的防呆，不是「以後有空再說」的待辦。</p>
+  </div>
+  <div class="card">
+    <h3>⚠️ 把「提示詞裡寫了規則」當成真正的安全邊界</h3>
+    <p>本專案目前把檔案操作範圍限制寫在 <code>SYSTEM_PROMPT</code>，這是軟性約束——依賴模型遵守指令，程式層面沒有強制檢查。這種做法在正常情況下沒問題，但一旦輸入裡混進某種你沒預期到的內容（核心鏈路後面會具體拆解這類風險），軟性約束隨時可能被繞過。真正該做強制檢查的地方，要寫在程式碼裡（像 <code>_safe_path()</code> 那樣），不能只靠「希望模型聽話」。</p>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <h3>⚠️ 換模型時以為「介面一樣就沒事」</h3>
+    <p>本專案能換模型只需要改 <code>config.py</code> 的 <code>MODEL</code> 名稱，前提是新模型同樣支援 <code>messages</code>、<code>tools</code> 這套標準 API 格式。容易被忽略的地方是：不同模型對同一個系統提示詞的「服從程度」不一樣，換模型之後，原本調校好的提示詞可能需要重新調整，不是換個名字就能無痛切換——這通常是上線後才會發現的落差，值得換模型後先做一輪行為迴歸測試。</p>
+  </div>
+
+  <div class="deep-dive">
+    <span class="deep-dive-badge">🎓 深入機制（進階，可選讀）</span>
+    <p class="subtitle">「幫大腦裝上手腳」是好記的比喻，但 harness 對應到 AI 領域一個有正式名稱、有學術論文定義的架構模式。這一節講它的理論基礎、控制流模式，以及安全模型。</p>
+
+    <h2>1. 形式化定義：感知—決策—行動迴圈</h2>
+    <p>經典教科書《Artificial Intelligence: A Modern Approach》（Russell &amp; Norvig）裡，<strong>Agent</strong> 被定義為：「任何能透過感測器感知環境、並透過致動器對環境採取行動的實體」：</p>
+    <div class="formula">agent: percept_sequence → action</div>
+    <p>Harness 正是這個抽象定義的具體實作——模型扮演決策函式，harness 負責接上真實世界的感測器（工具結果、使用者輸入）和致動器（工具呼叫）。這跟自駕車背後的感知→決策→行動迴圈是同一個架構模式，只是決策函式換成了 LLM。</p>
+
+    <h2>2. ReAct 範式：Reasoning + Acting</h2>
+    <p>本專案 <code>agent_loop()</code> 的結構，對應學術文獻裡明確命名的模式 <strong>ReAct</strong>（Yao et al. 2022）：</p>
+    <div class="formula">Thought → Action → Observation → Thought → Action → Observation → ... → Final Answer</div>
+    <table>
+      <tr><th>ReAct 概念</th><th>本專案對應</th></tr>
+      <tr><td>Thought</td><td><code>think=True</code> 時模型產生的推理過程</td></tr>
+      <tr><td>Action</td><td><code>msg["tool_calls"]</code></td></tr>
+      <tr><td>Observation</td><td><code>{"role": "tool", "content": result}</code></td></tr>
+      <tr><td>迴圈終止</td><td><code>if not msg.get("tool_calls")</code></td></tr>
+    </table>
+    <p>ReAct 的關鍵發現：讓模型邊想邊做，比「先規劃完整計畫再一次執行」更能即時根據新資訊調整方向，也更不容易因為一步錯導致全盤皆錯。</p>
+
+    <h2>3. 工具呼叫的形式化本質：約束生成</h2>
+    <p>一般文字生成是在整個詞彙表上取樣；工具呼叫用 JSON Schema 當形式文法，把輸出限制在合法函式呼叫這個子空間，學術上叫 <strong>Structured Output / Constrained Decoding</strong>。</p>
+    <div class="card">
+      <p style="margin-bottom:0;">這也是為什麼每個工具都要定義完整 <code>DEFINITIONS</code>——不只是給人看的文件，是真正限制模型「能合法說出什麼」的邊界條件。</p>
+    </div>
+
+    <h2>4. 狀態表示：Transcript 作為「信念狀態」</h2>
+    <p><code>messages</code> 扮演整個系統的狀態，但嚴格來說不是馬可夫狀態——因為必須攜帶完整歷史，不是只有最新一筆。這是 LLM 無狀態的必然代價：harness 只能把全部歷史當成每次都要重新提供的輸入，模擬出「有記憶」的效果。</p>
+
+    <h2>5. 三種控制流模式比較</h2>
+    <table>
+      <tr><th>模式</th><th>特徵</th><th>適合情境</th></tr>
+      <tr><td>ReAct（本專案）</td><td>邊推理邊行動，每步重新評估</td><td>任務路徑不確定</td></tr>
+      <tr><td>Plan-and-Execute</td><td>先產生完整計畫再逐步執行</td><td>任務結構清楚、步驟可預先列出</td></tr>
+      <tr><td>Reflexion</td><td>加入失敗後自我反省的記憶層</td><td>需要多次嘗試的任務</td></tr>
+    </table>
+
+    <h2>6. 安全模型：最小權限原則</h2>
+    <p>對應資安領域的<strong>最小權限原則</strong>：系統只被授予完成任務所必需的最小權限。常見分層：</p>
+    <ul>
+      <li>🟢 唯讀操作：通常自動放行</li>
+      <li>🟡 可逆操作：可能自動放行，但記錄軌跡</li>
+      <li>🔴 不可逆或高風險操作：強制要求明確確認</li>
+    </ul>
+    <p>更嚴謹的系統會在程式層面做強制檢查，而不只是寫在提示詞裡——這是防禦縱深（Defense in Depth）：不能只靠提示詞，程式碼本身也要有一道防線。</p>
+    <p style="margin-bottom:0;">🛡️ 這裡只是起個頭，完整的權限分級設計、隔離機制、Prompt Injection 防範，見獨立主題頁 <a href="../security/index.html">AI 代理人安全邊界</a>。</p>
+  </div>
+
+  <div class="nav-links">
+    <a href="bridge-llm-harness.html">← 上一站：② LLM ⇄ Harness 橋接</a>
+    <a href="bidirectional.html">下一站：④ 雙向溝通 →</a>
+  </div>
+</div>
+</body>
+</html>

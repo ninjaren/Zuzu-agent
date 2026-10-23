@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>基礎名詞辭典｜AI Agent 學習地圖</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  .term-card h3 { margin-top: 0; }
+  .term-card .eng { color: var(--text-muted); font-weight: 400; font-size: 0.85em; }
+  .term-card .pitfall { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); color: var(--text-muted); font-size: 0.92em; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a class="back" href="../home.html">← 所有主題地圖</a>
+  <h1>📖 基礎名詞辭典</h1>
+  <p class="subtitle">整張學習地圖裡一直被用到、但從沒正式定義過的基礎名詞，查閱用，不用照順序讀。每個詞一句話講清楚，部分條目附上實務上容易搞混的地方。</p>
+
+  <h2>硬體與算力</h2>
+
+  <div class="card term-card">
+    <h3>算力 <span class="eng">Compute</span></h3>
+    <p style="margin-bottom:0;">電腦每秒能做多少次數學運算，常用單位 <strong>FLOPS</strong>。顯卡規格表上的「XX TFLOPS」，代表這張卡理論上每秒能做幾兆次浮點運算。AI 訓練/推論本質上是海量矩陣乘法，算力越高，單位時間能處理的運算越多——「AI 訓練 AI」那頁討論的硬體能不能做到，核心比較的就是這個數字的量級差距。</p>
+  </div>
+
+  <div class="card term-card">
+    <h3>GPU／顯示卡 <span class="eng">Graphics Processing Unit</span></h3>
+    <p style="margin-bottom:0;">原本為了算圖形畫面設計，但「同時做大量簡單運算」的特性剛好跟 AI 需要的海量矩陣乘法契合，變成主力硬體。CPU 像一個很聰明但一次只能認真做一件事的人，GPU 像幾千個同時一起做簡單加減法的人——AI 運算剛好是後者那種工作型態。</p>
+  </div>
+
+  <div class="card term-card">
+    <h3>VRAM／顯存 <span class="eng">Video RAM</span></h3>
+    <p>GPU 自己專用的記憶體，跟主記憶體（RAM）分開。模型權重、運算中間結果都要放進 VRAM 才能被 GPU 存取——這是為什麼「顯卡夠不夠力」常常先看 VRAM 夠不夠大：VRAM 不夠，模型連塞進去都做不到，根本沒機會開始算。</p>
+    <p class="pitfall" style="margin-bottom:0;">⚠️ 容易搞混的地方：VRAM 不夠時系統常常不是直接報錯，而是掉到極慢的 CPU/共用記憶體模式，表現成「突然變超慢」而不是「跑不起來」——第一次遇到很容易誤判成模型或程式有問題。</p>
+  </div>
+
+  <div class="card term-card" style="margin-bottom:0;">
+    <h3>量化 <span class="eng">Quantization</span></h3>
+    <p>把模型權重原本的高精度數字（32-bit 或 16-bit 浮點數）壓縮成更低精度（8-bit 或 4-bit 整數），犧牲一點精準度換取大幅縮小體積、降低 VRAM 需求。這正是 qwen3:8b 能在消費級顯卡上本機跑起來的關鍵——Ollama 預設下載的通常是量化過的版本，不是訓練時的滿精度版本。</p>
+    <p class="pitfall" style="margin-bottom:0;">⚠️ 不同量化等級（Q4、Q8 等）會影響輸出品質，不只是速度——比較兩個模型的回答品質差異時，先確認是不是在比較不同量化等級，而不是真的模型能力差異。</p>
+  </div>
+
+  <h2>模型與推論</h2>
+
+  <div class="card term-card">
+    <h3>參數（量） <span class="eng">Parameters</span></h3>
+    <p style="margin-bottom:0;">模型內部可以被調整的數字，核心鏈路①深入講解提過：qwen3:8b 的 8B 就是 80 億個參數。參數量常被當成模型規模的粗略指標，不完全等於聰明程度，但有高度相關性。</p>
+  </div>
+
+  <div class="card term-card">
+    <h3>推論 <span class="eng">Inference</span></h3>
+    <p style="margin-bottom:0;">把輸入丟進已訓練好的模型算出一次輸出——平常聊天做的就是這件事。只需要前向傳播，不用計算梯度或更新權重，相對訓練輕量很多。</p>
+  </div>
+
+  <div class="card term-card">
+    <h3>訓練 vs 微調 <span class="eng">Training vs Fine-tuning</span></h3>
+    <p style="margin-bottom:0;"><strong>訓練（從零開始）</strong>用海量資料，從隨機初始化的參數調整到有能力的狀態——核心鏈路①提過的預訓練階段，只有大型實驗室做得起。<strong>微調</strong>是拿訓練好的模型，用少量額外資料做針對性調整——LoRA 是輕量微調技術，消費級硬體勉強做得到的是這一種，不是從零訓練。</p>
+  </div>
+
+  <div class="card term-card">
+    <h3>Token／Tokens per Second</h3>
+    <p style="margin-bottom:0;">Token 是模型處理文字的最小單位。TPS 是衡量推論速度的常見指標——每秒生成幾個 token，跟硬體算力、模型大小、量化程度都有關。</p>
+  </div>
+
+  <div class="card term-card" style="margin-bottom:0;">
+    <h3>Context Window／上下文視窗</h3>
+    <p>模型一次能看的 token 數量上限，來自 Self-Attention 運算量隨長度平方成長（O(n²)）——這是「記憶與 RAG」子地圖要費心篩選內容、而不是塞全部歷史對話的根本原因。</p>
+    <p class="pitfall" style="margin-bottom:0;">⚠️ 超過上限不一定會報錯，有些服務會自動截斷最前面的內容——如果模型突然「忘記」對話一開始交代的事，先檢查是不是超出了 context window，而不是急著怪模型能力不足。</p>
+  </div>
+
+  <h2>訓練相關的基本詞</h2>
+
+  <div class="card term-card">
+    <h3>Epoch</h3>
+    <p style="margin-bottom:0;">訓練資料被完整看過一輪算一個 Epoch。通常要跑好幾個 Epoch 讓模型重複學習規律，但跑太多輪可能導致死背資料而不是學會通用規律（Overfitting，過擬合）。</p>
+  </div>
+
+  <div class="card term-card">
+    <h3>Batch Size</h3>
+    <p style="margin-bottom:0;">訓練時一次丟進去一起計算的資料筆數。Batch 越大參考的資訊越多、訓練越穩定，但需要的 VRAM 也等比例增加——「你的顯卡能不能跑」實際上最常卡住的地方不是跑不動，是 Batch Size 被迫調得很小。</p>
+  </div>
+
+  <div class="card term-card" style="margin-bottom:0;">
+    <h3>LoRA / QLoRA</h3>
+    <p>不去動原本模型參數、只額外加一小組轉接參數去微調的技術，大幅降低訓練需要的記憶體。QLoRA 是 LoRA 再加上量化，進一步降低門檻——是目前消費級硬體唯一有機會碰到模型微調的實際路徑。</p>
+    <p class="pitfall" style="margin-bottom:0;">⚠️ 訓練出來的這組轉接參數只能用在訓練時那個特定的基礎模型上，不能換到別的 LLM 用，連同一家族的不同版本都不行——完整的訓練機制和原因在「AI 訓練 AI」那頁有詳細說明。</p>
+  </div>
+
+  <h2>效能相關</h2>
+
+  <div class="card term-card">
+    <h3>延遲 vs 吞吐量 <span class="eng">Latency vs Throughput</span></h3>
+    <p style="margin-bottom:0;"><strong>延遲</strong>是從發出請求到拿到第一個字回應等了多久，使用者體驗最在意的數字。<strong>吞吐量</strong>是單位時間內系統總共能處理多少請求，伺服器同時服務很多人時更在意。兩者有時互相取捨：拉高吞吐量，單一使用者的延遲可能被拉長。</p>
+  </div>
+
+  <div class="card term-card" style="margin-bottom:0;">
+    <h3>API vs 本機部署</h3>
+    <p style="margin-bottom:0;">API 是連到別人架設好的伺服器，資料會傳出去，按用量付費，不用自己管硬體。本機部署（本專案用 Ollama 跑 qwen3:8b）把模型整個下載到自己電腦上執行，資料完全不離開本機，但效能受限於自己的硬體——選本機部署還是 API，本質上是在「資料隱私和成本可控」跟「不受限於自己硬體規格」之間取捨。</p>
+  </div>
+
+  <div class="footer-links">
+    🗺️ <a href="../home.html">回所有主題地圖</a> ｜ 🔗 <a href="../index.html">核心鏈路</a> ｜ 🧬 <a href="../rsi/index.html">AI 訓練 AI（RSI）</a>
+  </div>
+</div>
+</body>
+</html>

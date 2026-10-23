@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>① 問題｜多模態橋接</title>
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<div class="container">
+  <a class="back" href="../index.html">← 回多模態橋接地圖</a>
+  <span class="tag">① 第一站</span>
+  <h1>❓ 問題：qwen3:8b 看不懂圖片</h1>
+  <p class="subtitle">核心鏈路第一站提過模型只認得文字。qwen3:8b 從訓練開始就只處理文字，沒有看圖能力——這不是 bug，是設計範圍之外的事。</p>
+
+  <div class="card">
+    <p>有些模型（GPT-4V、Claude、Gemini）是<strong>原生多模態</strong>——訓練時同時看過大量圖片+文字配對，學會把像素資訊直接轉成跟文字一樣的內部表示。qwen3:8b 不是這種模型，訓練資料從頭到尾都是純文字，沒有解讀圖片的能力。</p>
+  </div>
+
+  <h2>「沒有視覺能力」具體代表什麼</h2>
+  <p>把一張圖片的 base64 編碼直接塞進 qwen3:8b 的輸入，它只會把這串亂碼當成普通文字去猜下一個字——完全不知道背後是一張圖片。純文字模型的輸入空間裡，根本沒有「圖片」這個概念存在。</p>
+
+  <h2>怎麼辦</h2>
+  <p>本專案的解法：<strong>找另一個專門看圖的模型幫忙</strong>，先把圖片翻譯成文字描述，qwen3 再根據文字描述回答。關鍵想法：qwen3 看不懂圖片，但很會理解文字——有人先把圖片翻譯成文字，qwen3 就能繼續發揮強項。</p>
+
+  <div class="quote-box">
+    跟「記憶與 RAG」子地圖用 <code>nomic-embed-text</code> 另一個模型做嵌入，是同樣的思路：讓每個模型做自己最擅長的事，harness 負責串起來。這種多模型協作的設計模式，會在整個專案裡重複出現。
+  </div>
+
+  <h2>本專案選用的視覺模型</h2>
+  <pre>VISION_MODEL = "llava:7b"   # config.py</pre>
+  <p><code>llava</code>（Large Language and Vision Assistant）是專門設計來同時處理圖片和文字的模型，透過 <code>ollama pull llava:7b</code> 下載。內部架構結合視覺編碼器（圖片轉內部表示）和語言模型（根據表示生成回答）——這是它能看懂圖片的根本原因。</p>
+
+  <h2>為什麼不乾脆把 qwen3 換成支援視覺的模型</h2>
+  <p>這是另一種可能解法，本專案選「兩個模型分工」而不是「換全能模型」，常見原因：</p>
+  <ul>
+    <li>💻 <strong>硬體限制</strong>：原生多模態模型通常比同等對話能力的純文字模型更吃資源，本機硬體要兼顧速度和品質更困難</li>
+    <li>🎯 <strong>各自優化</strong>：qwen3 專注對話和工具呼叫，llava 專注視覺理解，分工後各自不用妥協</li>
+    <li>🔧 <strong>彈性</strong>：之後換視覺模型只需改 <code>VISION_MODEL</code> 一個設定，不用動整個對話邏輯</li>
+  </ul>
+
+  <h2>工作中真的會踩到的坑</h2>
+  <div class="card" style="margin-bottom:0;">
+    <h3>⚠️ 把「能回答圖片問題」誤解成「模型看懂了圖片」</h3>
+    <p>當整個系統能正確回答「這張圖裡有什麼」，很容易產生一種錯覺：好像 qwen3 真的「看到」了圖片。實際上它連一個像素都沒碰過，它只是在回答一段文字——這個認知落差在除錯時特別致命：如果答案錯了，第一反應常常是去查 qwen3 的提示詞，但真正問題十之八九出在上游的圖片轉譯那一步，下一站會細談。</p>
+  </div>
+
+  <div class="deep-dive">
+    <span class="deep-dive-badge">🎓 深入機制（進階，可選讀）</span>
+    <p class="subtitle">原生多模態和橋接式多模態在學術上有正式的架構分類，背後也涉及真正讓圖片和文字互通的關鍵技術——CLIP。</p>
+
+    <h2>1. 模態融合的兩種架構：Early Fusion vs Late Fusion</h2>
+    <table>
+      <tr><th>架構</th><th>特徵</th><th>範例</th></tr>
+      <tr><td><strong>Early Fusion</strong></td><td>圖片和文字在模型最底層就轉成同一種內部表示，一起進入同一個網路運算</td><td>GPT-4V、Gemini、LLaVA 這類原生多模態模型</td></tr>
+      <tr><td><strong>Late Fusion</strong></td><td>圖片和文字各自獨立處理完，最後用文字這個公分母合併結果</td><td>本專案的 llava→qwen3 橋接</td></tr>
+    </table>
+    <p>有趣的是，<code>llava:7b</code> 本身其實是 Early Fusion 架構（下一站講內部結構），但本專案使用它的方式——問 llava、拿文字結果、塞給 qwen3——讓整個系統從外部看起來變成 Late Fusion。Fusion 策略是系統設計層次的概念，不完全取決於單一模型本身的架構。</p>
+
+    <h2>2. CLIP：讓圖片和文字互通的關鍵技術</h2>
+    <p>原生多模態模型能看懂圖片，核心技術之一是 Radford et al.（2021）提出的 <strong>CLIP（Contrastive Language-Image Pretraining）</strong>，概念跟「記憶與 RAG」子地圖的對比學習一樣，只是應用在圖片和文字配對上：</p>
+    <div class="formula">訓練資料：網路上大量「圖片 + 對應文字說明」的配對
+訓練目標：圖片的向量表示要跟配對的文字向量表示盡量接近；
+         跟不相關的文字向量表示盡量遠離</div>
+    <p>訓練完成後，CLIP 讓圖片和文字活在同一個向量空間裡——這個共用向量空間的性質，正是原生多模態模型能把圖片接進語言模型的技術基礎。</p>
+
+    <h2>3. 資訊理論視角：模態差距與資訊瓶頸</h2>
+    <p>圖片和文字的資訊密度差異很大——照片可能上百萬像素，文字描述只有幾十到幾百字。把圖片翻譯成文字本質上是<strong>有損壓縮（Lossy Compression）</strong>：資訊理論裡的<strong>資訊瓶頸（Information Bottleneck）</strong>描述的正是這種現象——高維度輸入壓縮成低維度表示必然丟失部分資訊，差別只在丟失的是雜訊還是重要細節。本專案把這個壓縮品質完全交給 llava 的描述能力決定，下一站會深入討論這個取捨。</p>
+  </div>
+
+  <div class="nav-links">
+    <a href="../index.html">← 回多模態橋接地圖</a>
+    <a href="llava_bridge.html">下一站：② llava 讀圖 →</a>
+  </div>
+</div>
+</body>
+</html>

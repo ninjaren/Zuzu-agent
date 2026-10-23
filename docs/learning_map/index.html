@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agent 學習地圖</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .map-wrap { max-width: 1480px; margin: 0 auto; }
+  svg { width: 100%; height: auto; display: block; }
+  .node rect {
+    fill: var(--card-bg);
+    stroke: var(--border);
+    stroke-width: 2;
+    rx: 16;
+    transition: stroke 0.15s, stroke-width 0.15s;
+  }
+  .node:hover rect { stroke: var(--accent); stroke-width: 4; }
+  .node text { fill: var(--text); font-family: inherit; }
+  .node .title { font-size: 20px; font-weight: 700; }
+  .node .sub { font-size: 14px; fill: var(--text-muted); }
+  .node a { cursor: pointer; }
+  .badge circle { fill: var(--accent); }
+  .badge text { fill: #fff; font-size: 15px; font-weight: 700; }
+  .edge { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; opacity: 0.55; fill: none; }
+  .legend { color: var(--text-muted); font-size: 1.1rem; margin-top: 1.8rem; }
+  .legend ol { padding-left: 1.5rem; }
+  .legend li { margin-bottom: 7px; }
+  .footer-links { margin-top: 2.8rem; padding-top: 1.4rem; border-top: 1px solid var(--border); font-size: 1.1rem; }
+  .footer-links a { color: var(--accent); text-decoration: none; }
+  .footer-links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container map-wrap">
+  <a class="back" href="home.html">← 所有主題地圖</a>
+  <h1>🔗 核心鏈路</h1>
+  <p class="subtitle">點擊節點看詳細說明，建議依照 ①→⑦ 的順序走一遍。每一站都對照 qwen3_8b 專案的實際程式碼，不是空談概念。</p>
+
+  <svg viewBox="0 0 1300 440" xmlns="http://www.w3.org/2000/svg">
+    <!-- edges -->
+    <path class="edge" d="M 235,120 L 285,120" />
+    <path class="edge" d="M 495,120 L 545,120" />
+    <path class="edge" d="M 755,120 L 805,120" />
+    <path class="edge" d="M 1015,120 L 1065,120" />
+    <path class="edge" d="M 590,165 L 510,295" />
+    <path class="edge" d="M 710,165 L 790,295" />
+
+    <!-- Node 1: LLM -->
+    <a xlink:href="pages/llm.html">
+      <g class="node" transform="translate(130,120)">
+        <rect x="-105" y="-45" width="210" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🧠 LLM 大腦</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">只會想、只會說</text>
+        <g class="badge"><circle cx="-88" cy="-32" r="14"></circle><text x="-88" y="-27" text-anchor="middle">①</text></g>
+      </g>
+    </a>
+
+    <!-- Node 2: bridge LLM-Harness -->
+    <a xlink:href="pages/bridge-llm-harness.html">
+      <g class="node" transform="translate(390,120)">
+        <rect x="-105" y="-45" width="210" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🔌 API+翻譯機</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">LLM ⇄ Harness 橋接</text>
+        <g class="badge"><circle cx="-88" cy="-32" r="14"></circle><text x="-88" y="-27" text-anchor="middle">②</text></g>
+      </g>
+    </a>
+
+    <!-- Node 3: Harness -->
+    <a xlink:href="pages/harness.html">
+      <g class="node" transform="translate(650,120)">
+        <rect x="-105" y="-45" width="210" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🦾 Harness 身體</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">管工具、跑迴圈</text>
+        <g class="badge"><circle cx="-88" cy="-32" r="14"></circle><text x="-88" y="-27" text-anchor="middle">③</text></g>
+      </g>
+    </a>
+
+    <!-- Node 4: bridge Harness-MCP -->
+    <a xlink:href="pages/bridge-harness-mcp.html">
+      <g class="node" transform="translate(910,120)">
+        <rect x="-105" y="-45" width="210" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🔌 Client+傳輸線</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">Harness ⇄ MCP 橋接</text>
+        <g class="badge"><circle cx="-88" cy="-32" r="14"></circle><text x="-88" y="-27" text-anchor="middle">⑥</text></g>
+      </g>
+    </a>
+
+    <!-- Node 5: MCP -->
+    <a xlink:href="pages/mcp.html">
+      <g class="node" transform="translate(1170,120)">
+        <rect x="-105" y="-45" width="210" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🧩 MCP 插頭規格</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">統一的工具接頭</text>
+        <g class="badge"><circle cx="-88" cy="-32" r="14"></circle><text x="-88" y="-27" text-anchor="middle">⑦</text></g>
+      </g>
+    </a>
+
+    <!-- Node 6: 雙向溝通 -->
+    <a xlink:href="pages/bidirectional.html">
+      <g class="node" transform="translate(510,340)">
+        <rect x="-105" y="-45" width="210" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🔁 雙向溝通</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">Harness 來回傳資訊</text>
+        <g class="badge"><circle cx="-88" cy="-32" r="14"></circle><text x="-88" y="-27" text-anchor="middle">④</text></g>
+      </g>
+    </a>
+
+    <!-- Node 7: 自我檢查機制 -->
+    <a xlink:href="pages/verification.html">
+      <g class="node" transform="translate(790,340)">
+        <rect x="-105" y="-45" width="210" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">✅ 自我檢查機制</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">本專案的 verify</text>
+        <g class="badge"><circle cx="-88" cy="-32" r="14"></circle><text x="-88" y="-27" text-anchor="middle">⑤</text></g>
+      </g>
+    </a>
+  </svg>
+
+  <div class="legend">
+    <strong>建議學習順序：</strong>
+    <ol>
+      <li>① LLM 大腦 —— 先理解它只是「輸入文字→輸出文字」的函式，沒有手腳沒有記憶</li>
+      <li>② LLM ⇄ Harness 橋接 —— API、Tokenizer、工具呼叫格式怎麼讓大腦跟身體對話</li>
+      <li>③ Harness 身體 —— 真正執行工具、跑迴圈、把關安全的那層程式</li>
+      <li>④ 雙向溝通 —— Harness 怎麼來回傳遞資訊，不是單向下命令</li>
+      <li>⑤ 自我檢查機制 —— 本專案 qwen3_8b 實際用的驗證做法</li>
+      <li>⑥ Harness ⇄ MCP 橋接 —— MCP Client、傳輸線、JSON-RPC</li>
+      <li>⑦ MCP 插頭規格 —— 統一工具接頭，讓 harness 能接上任何標準化工具</li>
+    </ol>
+  </div>
+
+  <div class="footer-links">
+    🗺️ <a href="home.html">回所有主題地圖</a>
+  </div>
+</div>
+</body>
+</html>

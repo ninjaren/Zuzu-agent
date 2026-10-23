@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多模態橋接｜AI Agent 學習地圖</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  .map-wrap { max-width: 1000px; margin: 0 auto; }
+  svg { width: 100%; height: auto; display: block; }
+  .node rect { fill: var(--card-bg); stroke: var(--border); stroke-width: 2; rx: 16; transition: stroke 0.15s, stroke-width 0.15s; }
+  .node:hover rect { stroke: var(--accent); stroke-width: 4; }
+  .node text { fill: var(--text); font-family: inherit; }
+  .node .title { font-size: 19px; font-weight: 700; }
+  .node .sub { font-size: 13px; fill: var(--text-muted); }
+  .node a { cursor: pointer; }
+  .badge circle { fill: var(--accent); }
+  .badge text { fill: #fff; font-size: 15px; font-weight: 700; }
+  .edge { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; opacity: 0.55; fill: none; }
+  .legend { color: var(--text-muted); font-size: 1.1rem; margin-top: 1.8rem; }
+  .legend ol { padding-left: 1.5rem; }
+  .legend li { margin-bottom: 7px; }
+  .footer-links { margin-top: 2.8rem; padding-top: 1.4rem; border-top: 1px solid var(--border); font-size: 1.1rem; }
+  .footer-links a { color: var(--accent); text-decoration: none; }
+  .footer-links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container map-wrap">
+  <a class="back" href="../home.html">← 所有主題地圖</a>
+  <h1>👁️ 多模態橋接</h1>
+  <p class="subtitle">qwen3:8b 看不懂圖片——本專案借助另一個視覺模型 llava，把圖片翻譯成文字再交給 qwen3。這個橋接的代價在哪裡，值得先搞清楚。</p>
+
+  <svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg">
+    <path class="edge" d="M 260,110 L 340,110" />
+    <path class="edge" d="M 560,110 L 640,110" />
+
+    <a xlink:href="pages/problem.html">
+      <g class="node" transform="translate(150,110)">
+        <rect x="-110" y="-45" width="220" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">❓ 問題</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">qwen3 看不懂圖</text>
+        <g class="badge"><circle cx="-92" cy="-32" r="14"></circle><text x="-92" y="-27" text-anchor="middle">①</text></g>
+      </g>
+    </a>
+
+    <a xlink:href="pages/llava_bridge.html">
+      <g class="node" transform="translate(450,110)">
+        <rect x="-110" y="-45" width="220" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🖼️ llava 讀圖</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">視覺模型生成文字描述</text>
+        <g class="badge"><circle cx="-92" cy="-32" r="14"></circle><text x="-92" y="-27" text-anchor="middle">②</text></g>
+      </g>
+    </a>
+
+    <a xlink:href="pages/merge_context.html">
+      <g class="node" transform="translate(750,110)">
+        <rect x="-110" y="-45" width="220" height="90"></rect>
+        <text class="title" x="0" y="-8" text-anchor="middle">🔗 併入對話</text>
+        <text class="sub" x="0" y="22" text-anchor="middle">描述交給 qwen3 理解</text>
+        <g class="badge"><circle cx="-92" cy="-32" r="14"></circle><text x="-92" y="-27" text-anchor="middle">③</text></g>
+      </g>
+    </a>
+  </svg>
+
+  <div class="legend">
+    <strong>建議學習順序：</strong>
+    <ol>
+      <li>① 問題 —— 為什麼 qwen3:8b 本身沒有看圖能力，一定要另找幫手</li>
+      <li>② llava 讀圖 —— 另一個視覺模型怎麼把圖片變成文字描述</li>
+      <li>③ 併入對話 —— 文字描述怎麼接回 qwen3 的對話流程，雙模型協作完成任務</li>
+    </ol>
+  </div>
+
+  <div class="footer-links">
+    🗺️ <a href="../home.html">回所有主題地圖</a> ｜ 🔗 <a href="../index.html">核心鏈路</a>
+  </div>
+</div>
+</body>
+</html>

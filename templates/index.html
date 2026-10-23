@@ -298,6 +298,29 @@
     .error-text { color: #e55 !important; }
     #turns { margin-left: auto; font-size: 0.78rem; color: #383838; }
 
+    /* ── 範例提示 chips ── */
+    #chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      justify-content: center;
+      padding: 0.5rem 0 0.8rem;
+      flex-shrink: 0;
+    }
+    #chips.hidden { display: none; }
+    .chip {
+      padding: 0.45rem 0.95rem;
+      background: #161616;
+      color: #888;
+      border: 1px solid #2a2a2a;
+      border-radius: 999px;
+      font-size: 0.87rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .chip:hover { border-color: #444; color: #ccc; background: #1c1c1c; }
+
     /* 右鍵選單 */
     #ctx-menu {
       display: none;
@@ -365,6 +388,14 @@
 
     <div class="chat-body">
       <div id="chat-log"></div>
+      <div id="chips">
+        <button class="chip" onclick="useChip(this)">台積電現在股價多少？</button>
+        <button class="chip" onclick="useChip(this)">本週 GitHub 最熱門專案有哪些？</button>
+        <button class="chip" onclick="useChip(this)">台北現在天氣如何？</button>
+        <button class="chip" onclick="useChip(this)">幫我搜尋最新 AI 消息</button>
+        <button class="chip" onclick="useChip(this)">Bitcoin 現在多少美元？</button>
+        <button class="chip" onclick="useChip(this)">幫我畫台積電近一個月走勢圖</button>
+      </div>
       <div id="image-preview-wrap">
         <img id="image-preview" src="" alt="預覽">
         <button id="image-clear" onclick="clearImage()" title="移除圖片">✕</button>
@@ -432,6 +463,17 @@
     const verifyLabel  = document.getElementById("verify-label");
     const sessionList = document.getElementById("session-list");
     const chatTitle   = document.getElementById("chat-title");
+
+    const chipsEl   = document.getElementById("chips");
+
+    function updateChips() {
+      chipsEl.classList.toggle("hidden", logEl.children.length > 0);
+    }
+
+    function useChip(btn) {
+      promptEl.value = btn.textContent.trim();
+      promptEl.focus();
+    }
 
     let currentSid  = localStorage.getItem("currentSid") || null;
     let ctxSid      = null;
@@ -546,6 +588,7 @@
       const res  = await fetch(`/sessions/${sid}/history`);
       const msgs = await res.json();
       msgs.forEach(m => addBubble(m.role, m.content));
+      updateChips();
 
       // 更新標題
       const item = document.querySelector(`.session-item[data-sid="${sid}"] .session-title`);
@@ -568,6 +611,7 @@
       if (!currentSid) return;
       await fetch(`/sessions/${currentSid}/clear`, { method: "POST" });
       logEl.innerHTML = "";
+      updateChips();
       statusEl.textContent = "記憶已清除";
       turnsEl.textContent  = "";
       const item = document.querySelector(`.session-item[data-sid="${currentSid}"] .session-title`);
@@ -618,6 +662,7 @@
       if (!currentSid) return;
 
       sendBtn.disabled = true;
+      chipsEl.classList.add("hidden");
       const baseStatus = image ? "分析圖片中…" : (thinkToggle.checked ? "深度思考中…" : "思考中…");
       statusEl.textContent = verifyToggle.checked ? baseStatus + "（驗證模式）" : baseStatus;
       statusEl.className = "";

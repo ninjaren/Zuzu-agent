@@ -1,6 +1,6 @@
 import json
 import requests
-from config import MODEL, OLLAMA_URL, RECENT_TURNS, RAG_TOP_K, SYSTEM_PROMPT, VERIFY_ANSWER
+from config import MODEL, OLLAMA_URL, RECENT_TURNS, RAG_TOP_K, SYSTEM_PROMPT, VERIFY_ANSWER, NUM_CTX
 from tools import TOOLS, run_tool
 from tools.web import reset_browse_counts
 from tools.vision import analyze_image_b64
@@ -64,7 +64,7 @@ def _verify_answer(messages: list, answer: str, think: bool) -> str:
     ]
     resp = requests.post(
         OLLAMA_URL,
-        json={"model": MODEL, "messages": verify_messages, "stream": False, "think": think},
+        json={"model": MODEL, "messages": verify_messages, "stream": False, "think": think, "options": {"num_ctx": NUM_CTX}},
         timeout=120,
     )
     resp.raise_for_status()
@@ -82,7 +82,7 @@ def agent_loop(messages: list, think: bool, verify: bool = False) -> str:
     while True:
         resp = requests.post(
             OLLAMA_URL,
-            json={"model": MODEL, "messages": messages, "tools": TOOLS, "stream": False, "think": think},
+            json={"model": MODEL, "messages": messages, "tools": TOOLS, "stream": False, "think": think, "options": {"num_ctx": NUM_CTX}},
             timeout=120,
         )
         resp.raise_for_status()

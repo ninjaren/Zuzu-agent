@@ -7,6 +7,10 @@ MODEL        = "qwen3:8b"
 VISION_MODEL = "llava:7b"
 # Ollama 本機 API 端點
 OLLAMA_URL   = "http://localhost:11434/api/chat"
+# Context window 大小（輸入+輸出共用）。qwen3:8b 原生支援 32768，
+# 若不設定 Ollama 會用預設值（通常遠小於此），導致 RECENT_TURNS/RAG_TOP_K
+# 塞進去的內容被悄悄截斷
+NUM_CTX      = 32768
 
 # ── 驗證模式 ──────────────────────────────────────
 # 開啟後 agent_loop 拿到答案後再呼叫一次模型做自我核查
