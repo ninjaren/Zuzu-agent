@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 
 echo 1/4 啟動 Ollama 服務...
-set OLLAMA_KEEP_ALIVE=0
+set OLLAMA_KEEP_ALIVE=3600
 start "" ollama serve
 
 echo 2/4 等待服務就緒...
